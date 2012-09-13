@@ -194,7 +194,7 @@ close(socketServidor);
 //Metodo main donde se realizan las validaciones de los datos ingresados, ademas de la bifurcación
 void main(int argc, char *argv[]){
 
-printf("\nCliente de mensajería instantanea\n\n");
+printf("\nBienvenido al cliente de mensajeria instantanea\n\n");
 
 int proceso = fork();
 
