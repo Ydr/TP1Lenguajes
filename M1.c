@@ -107,3 +107,107 @@ close(SocketServidor);
 close(SocketCliente);
 }
 
+void cliente (const char *IP, int puertoCliente){//función encargada de crear el proceso cliente, recibe la IP y el puerto cliente
+
+int estadoConexion; //variable de identificacion del estado de conexion
+
+struct sockaddr_in direccionServidor;
+struct hostent *servidor;
+char buffer[256];
+
+
+int socketServidor = socket(AF_INET, SOCK_STREAM, 0);
+
+if (socketServidor < 0){
+fprintf(stderr,"No se puede crear el socket. \n\a");
+exit(1);
+}
+
+
+
+servidor = gethostbyname(IP);
+
+
+if (servidor == NULL) {
+fprintf(stderr,"No existe o no se encuentra disponible el servidor solicitado. \a\n");
+exit(1);
+}
+
+direccionServidor.sin_family = AF_INET;
+
+
+bcopy((char *)servidor->h_addr,(char *)&direccionServidor.sin_addr.s_addr, servidor->h_length); //copia características del socket servidor
+
+direccionServidor.sin_port = htons(puertoCliente);
+
+
+int contador = 0;
+
+while(1){ //while para espera de conexion con el cliente
+
+if (estadoConexion >= 0){
+	printf("Se ha establecido conexion\n");
+	break;
+}
+else{
+	estadoConexion = connect(socketServidor,(struct sockaddr *) &direccionServidor,sizeof(direccionServidor));
+}
+}
+
+
+while(1){
+
+bzero(buffer,256);//Se limpia el buffer con la funcion bzero
+
+fgets(buffer,255,stdin);//Se obtiene del bash la informacion
+
+/* En la linea anterior se utiliza:
+--> \033[A  -> para inprimir la linea arriba del prompt
+--> \033[2K -> para inicio de la linea del prompt
+--> \033[01;36m -> para establecer el color cyan (para mensaje enviado)
+--> \033[01;37m -> para establecer el colorcolor blanco (para cuerpo del mensaje)
+*/
+				
+printf("\033[A\033[2K\033[01;36m""Mensaje Enviado:\033[00;37m %s",buffer);//Impresion de datos en pantalla con formato
+				
+
+
+if(strcmp(buffer,escape)==0){//Búsqueda del proceso hijo-cliente y terminarlo en caso de digitar la palabra de escape
+
+write(socketServidor, buffer, strlen(buffer));//Escribe Adios en el buffer para posteriormente cerrar el proceso
+
+int hijoID = getpid();//Se obtiene el ID del proceso cliente
+hijoID++;
+printf("\nCierre de sesion\n");
+kill(hijoID, SIGKILL);//Funcion que termina el proceso de acuerdo al numero establecido
+break;
+}
+
+else{
+write(socketServidor, buffer, strlen(buffer));//sino se escribe normalmente en el socket la cadena a enviar
+}
+}
+
+close(socketServidor);
+}
+
+//Metodo main donde se realizan las validaciones de los datos ingresados, ademas de la bifurcación
+void main(int argc, char *argv[]){
+
+printf("\nCliente de mensajería instantanea\n\n");
+
+int proceso = fork();
+
+//La funcion atoi cambia de tipo string a int, necesario para el manejo interno de los puertos
+int puertoServidor = atoi(argv[3]);
+int puertoCliente = atoi(argv[2]);
+const char *IP = argv[1]; // Se defne como puntero constante a un char ya que éste no va a ser modificado
+
+
+if(proceso == 0){ //si aun no hay un proceso padre creado
+	servidor(puertoServidor);
+}
+else{ //crea el proceso hijo
+	cliente(IP, puertoCliente);
+}
+}
